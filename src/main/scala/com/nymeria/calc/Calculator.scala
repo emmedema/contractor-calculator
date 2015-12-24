@@ -9,17 +9,19 @@ object Calculator {
   val effectiveHigherRateThreshold: BigDecimal = higherRateThreshold - basicRateThreshold
   val personalAllowance: BigDecimal = 11000
 
-  def calculateTotalTax(salaryIncome: BigDecimal, dividendsIncome: BigDecimal): (BigDecimal, BigDecimal) = {
+  def calculateTotalTax(salaryIncome: BigDecimal, dividendsIncome: BigDecimal): Option[(BigDecimal, BigDecimal)] = {
+    if(salaryIncome < 0 || dividendsIncome < 0) return None
+
     val generalAllowance = effectiveAllowance(salaryIncome + dividendsIncome)
 
     val (sBasic, sHigher, sTop, remainingAllowance) = Salary.calculateTax(salaryIncome, generalAllowance)
     val salaryTaxableAmounts = Salary.calculateTaxableIncomes(salaryIncome, generalAllowance)
     val (dBasic, dHigher, dTop) = Dividends.calculateTax(dividendsIncome, remainingAllowance + Dividends.dividendsAllowance, salaryTaxableAmounts)
 
-    ((sBasic + sHigher + sTop).setScale(2, RoundingMode.HALF_UP), (dBasic + dHigher + dTop).setScale(2, RoundingMode.HALF_UP))
+    Some(((sBasic + sHigher + sTop).setScale(2, RoundingMode.HALF_UP), (dBasic + dHigher + dTop).setScale(2, RoundingMode.HALF_UP)))
   }
 
-  def effectiveAllowance(totalIncome: BigDecimal): BigDecimal = {
+  private[Calculator] def effectiveAllowance(totalIncome: BigDecimal): BigDecimal = {
     val beyondThreshold = totalIncome - 100000
 
     if (beyondThreshold > 0) {
@@ -28,7 +30,7 @@ object Calculator {
     } else { personalAllowance }
   }
 
-  object Salary {
+  private[Calculator] object Salary {
     val basicRate: BigDecimal = 0.20
     val higherRate: BigDecimal = 0.40
     val topRate: BigDecimal = 0.45
@@ -79,7 +81,7 @@ object Calculator {
     }
   }
 
-  object Dividends {
+  private[Calculator] object Dividends {
     val dividendsAllowance: BigDecimal = 5000
     val basicRate: BigDecimal = 0.075
     val higherRate: BigDecimal = 0.325
